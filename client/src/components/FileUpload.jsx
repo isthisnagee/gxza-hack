@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
+import { storage, db } from '../firebase/config';
+import { collection, addDoc } from 'firebase/firestore';
 
 const FileUpload = () => {
   const [file, setFile] = useState(null);
@@ -8,6 +9,7 @@ const FileUpload = () => {
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [processing, setProcessing] = useState(false);
 
   const handleFileChange = (e) => {
     if (e.target.files[0]) {
@@ -15,6 +17,59 @@ const FileUpload = () => {
       setUploadError(null);
       setUploadSuccess(false);
       setUploadProgress(0);
+    }
+  };
+
+  const processFileContent = async (text) => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [{
+            role: "user",
+            content: `
+              Parse this pharmacy inventory data and convert to structured format:
+              ${text}
+              
+              Return as JSON array with format:
+              [{
+                "name": "standardized drug name",
+                "dosage": "standardized dosage with unit",
+                "form": "pill/liquid/etc",
+                "quantity": "numeric only",
+                "manufacturer": "standardized manufacturer name"
+              }]
+            `
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      const parsedData = JSON.parse(data.choices[0].message.content);
+      
+      // Store processed data in Firestore
+      const inventoryRef = collection(db, 'inventory');
+      for (const item of parsedData) {
+        await addDoc(inventoryRef, {
+          ...item,
+          uploadedAt: new Date(),
+          originalFile: file.name
+        });
+      }
+
+      return parsedData;
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw error;
     }
   };
 
@@ -26,8 +81,9 @@ const FileUpload = () => {
       setUploading(true);
       setUploadError(null);
       
-      const fileRef = ref(storage, `uploads/${file.name}`);
-      const uploadTask = uploadBytesResumable(fileRef, file);
+      // 1. Upload file to Firebase Storage
+      const storageRef = ref(storage, `uploads/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
@@ -40,9 +96,27 @@ const FileUpload = () => {
           setUploading(false);
         },
         async () => {
-          const downloadURL = await getDownloadURL(fileRef);
+          // Upload completed successfully
+          const downloadURL = await getDownloadURL(storageRef);
           console.log('File uploaded successfully:', downloadURL);
-          setUploadSuccess(true);
+          
+          try {
+            // 2. Process the file with OpenAI
+            setProcessing(true);
+            
+            // Read the file content
+            const text = await file.text();
+            const processedData = await processFileContent(text);
+            
+            console.log('Processed data:', processedData);
+            setUploadSuccess(true);
+          } catch (error) {
+            console.error('Processing error:', error);
+            setUploadError('Failed to process file. Please try again.');
+          } finally {
+            setProcessing(false);
+          }
+          
           setFile(null);
           setUploading(false);
           e.target.reset();
@@ -69,7 +143,7 @@ const FileUpload = () => {
         
         {uploadSuccess && (
           <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-100">
-            <p className="text-sm text-green-600">File uploaded successfully!</p>
+            <p className="text-sm text-green-600">File processed successfully!</p>
           </div>
         )}
 
@@ -91,7 +165,7 @@ const FileUpload = () => {
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                   disabled:opacity-50 disabled:cursor-not-allowed
                   transition-colors duration-200"
-                disabled={uploading}
+                disabled={uploading || processing}
               />
             </div>
             {file && (
@@ -101,16 +175,18 @@ const FileUpload = () => {
             )}
           </div>
 
-          {uploading && (
+          {(uploading || processing) && (
             <div className="space-y-2">
               <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-in-out"
-                  style={{ width: `${uploadProgress}%` }}
+                  style={{ width: uploading ? `${uploadProgress}%` : '100%' }}
                 />
               </div>
               <p className="text-sm text-gray-600 text-center">
-                {Math.round(uploadProgress)}% uploaded
+                {uploading 
+                  ? `${Math.round(uploadProgress)}% uploaded`
+                  : 'Processing file...'}
               </p>
             </div>
           )}
@@ -123,15 +199,15 @@ const FileUpload = () => {
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors duration-200"
-            disabled={!file || uploading}
+            disabled={!file || uploading || processing}
           >
-            {uploading ? (
+            {uploading || processing ? (
               <>
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Uploading...
+                {uploading ? 'Uploading...' : 'Processing...'}
               </>
             ) : (
               'Upload File'
