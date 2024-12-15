@@ -1,22 +1,18 @@
-[project]
-name = "api"
+[tool.poetry]
+name = "fastapi-app"
 version = "0.1.0"
-description = "Add your description here"
+description = ""
+authors = ["Donatas Rasiukevicius <donatas@fly.io>"]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "fastapi[standard]>=0.115.6",
-    "firebase-admin>=6.6.0",
-    "openai>=1.57.4",
-    "pydantic>=2.10.3",
-]
 
-[dependency-groups]
-dev = [
-    "pyright>=1.1.390",
-    "ruff>=0.8.3",
-]
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = {extras = ["standard"], version = "^0.115.6"}
+openai = "^1.57.4"
+firebase-admin = "^6.6.0"
+pydantic = "^2.10.3"
 
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
