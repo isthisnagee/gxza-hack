@@ -1,4 +1,0 @@
-min_version = "2024.9.5"
-
-[tools]
-node = "22.12.0"

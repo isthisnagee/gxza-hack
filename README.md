@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GazaPharma Admin
 
 A web application for managing pharmacy inventory uploads in Gaza.
@@ -34,6 +35,8 @@ cd client
 ```bash
 npm run dev
 ```
+
+4. see the README in `python-api/` for info on how to run it locally.
 
 ## Features
 
@@ -83,4 +86,3 @@ The application is built with React and uses:
 4. Push to the branch
 5. Create a new Pull Request
 ```
-
