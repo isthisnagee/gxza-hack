@@ -146,7 +146,8 @@ const FileUpload = () => {
   return (
     <div className="w-full max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Upload Inventory</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Upload Your Existing Inventory</h2>
+        <h3 className="text-lg text-gray-600 mb-6">(.csv, .txt, .xlsx, .pdf)</h3>
         
         {uploadError && (
           <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100">
@@ -223,7 +224,7 @@ const FileUpload = () => {
                 {uploading ? 'Uploading...' : 'Processing...'}
               </>
             ) : (
-              'Upload File'
+              'Upload Inventory'
             )}
           </button>
         </form>
