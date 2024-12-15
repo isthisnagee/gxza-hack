@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # GazaPharma Admin
 
 A web application for managing pharmacy inventory uploads in Gaza.
