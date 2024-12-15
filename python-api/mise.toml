@@ -4,5 +4,9 @@ min_version = "2024.9.5"
 python = "3.12"
 uv = "latest"
 
+[tasks]
+setup = "uv venv; uv sync"
+dev = "uv run fastapi dev main.py"
+
 [env]
 _.file = '.env.local'
