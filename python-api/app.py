@@ -8,15 +8,30 @@ from fastapi import FastAPI
 import firebase_admin
 from firebase_admin import credentials
 from config import AppConfig
+# setup cors to allow request from any origin
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
-
+# Allow requests from anywhere
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow requests from all origins
+    allow_credentials=True,  # Allow sending cookies with requests
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 config = AppConfig.from_env()
 creds = credentials.Certificate(config.firebase)
 firebase_admin.initialize_app(
     creds,
 )
+
+@app.get("/")
+def index():
+    return {"message": "Hello, World!"}
+
 
 
 class Input(pydantic.BaseModel):
@@ -35,12 +50,10 @@ class Output(pydantic.BaseModel):
     )
 
 
-@app.get("/healthcheck")
-def read_root():
-    return {"Hello": "World"}
+@app.get("/ping")
+def health():
+    return {"ping": "pong"}
 
-
-# And endpoint to take in free-text and returns structured output
 @app.post("/structured-medication")
 def structured_medication(input_: Input) -> Output:
     client = OpenAI(api_key=config.openai_api_key)
@@ -65,7 +78,6 @@ def structured_medication(input_: Input) -> Output:
     ), "We called with a tool, so we should get tool calls back"
     output = cast(Output, tool_calls[0].function.parsed_arguments)
 
-    print(output)
     if input_.store:
         db = firestore.client()
         db.collection("inventory").document().set(
