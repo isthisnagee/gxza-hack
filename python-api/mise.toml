@@ -1,12 +1,13 @@
 min_version = "2024.9.5"
 
 [tools]
-python = "3.12"
+python = "3.10"
 uv = "latest"
+poetry = "latest"
 
 [tasks]
-setup = "uv venv; uv sync"
-dev = "uv run fastapi dev main.py"
+setup = "poetry install"
+dev = "poetry run fastapi dev app.py"
 
 [env]
 _.file = '.env.local'
