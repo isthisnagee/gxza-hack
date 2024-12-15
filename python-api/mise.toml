@@ -2,7 +2,6 @@ min_version = "2024.9.5"
 
 [tools]
 python = "3.10"
-uv = "latest"
 poetry = "latest"
 
 [tasks]

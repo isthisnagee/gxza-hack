@@ -23,5 +23,3 @@ class AppConfig:
             openai_api_key=openai_api_key,
             firebase=json.loads(firebase_conf),
         )
-
-
