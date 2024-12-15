@@ -84,4 +84,3 @@ The application is built with React and uses:
 5. Create a new Pull Request
 ```
 
-Would you like me to add any additional sections or information to the README?
