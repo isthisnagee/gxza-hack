@@ -26,18 +26,13 @@ class Input(pydantic.BaseModel):
     )
 
 
-class Dosage(pydantic.BaseModel):
-    quantity: int
-    unit: str
-    form: str | None
-
 class Output(pydantic.BaseModel):
     name: str = pydantic.Field(description="The name of the medication. Fix typos if needed, for example, Prednsione should be corrected to Prednisone.")
-    units: int = pydantic.Field(
+    strength: str = pydantic.Field(description="The strength of the medication. e.g. 10mg")
+    location: str = pydantic.Field(description="Where the medication is located")
+    quantity: int = pydantic.Field(
         description="How much of the medication is available. If a range is given, the lower bound is used."
     )
-    dosage: Dosage
-    location: str = pydantic.Field(description="Where the medication is located")
 
 
 @app.get("/healthcheck")
