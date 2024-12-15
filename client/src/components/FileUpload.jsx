@@ -54,7 +54,18 @@ const FileUpload = () => {
         throw new Error(data.error.message);
       }
 
-      const parsedData = JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+      
+      // Extract JSON array from the content using regex
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('No JSON array found in response');
+      }
+
+      const jsonStr = jsonMatch[0];
+      console.log('Extracted JSON string:', jsonStr);
+      
+      const parsedData = JSON.parse(jsonStr);
       
       // Store processed data in Firestore
       const inventoryRef = collection(db, 'inventory');
@@ -80,6 +91,7 @@ const FileUpload = () => {
     try {
       setUploading(true);
       setUploadError(null);
+      setUploadSuccess(false);
       
       // 1. Upload file to Firebase Storage
       const storageRef = ref(storage, `uploads/${file.name}`);
@@ -94,13 +106,14 @@ const FileUpload = () => {
           console.error('Upload error:', error);
           setUploadError('Failed to upload file. Please try again.');
           setUploading(false);
+          setProcessing(false);
         },
         async () => {
-          // Upload completed successfully
-          const downloadURL = await getDownloadURL(storageRef);
-          console.log('File uploaded successfully:', downloadURL);
-          
           try {
+            // Upload completed successfully
+            const downloadURL = await getDownloadURL(storageRef);
+            console.log('File uploaded successfully:', downloadURL);
+            
             // 2. Process the file with OpenAI
             setProcessing(true);
             
@@ -110,16 +123,15 @@ const FileUpload = () => {
             
             console.log('Processed data:', processedData);
             setUploadSuccess(true);
+            setFile(null);
+            e.target.reset();
           } catch (error) {
             console.error('Processing error:', error);
             setUploadError('Failed to process file. Please try again.');
           } finally {
+            setUploading(false);
             setProcessing(false);
           }
-          
-          setFile(null);
-          setUploading(false);
-          e.target.reset();
         }
       );
       
@@ -127,6 +139,7 @@ const FileUpload = () => {
       console.error('Error starting upload:', error);
       setUploadError('Failed to start upload. Please try again.');
       setUploading(false);
+      setProcessing(false);
     }
   };
 
