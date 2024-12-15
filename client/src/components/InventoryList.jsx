@@ -15,12 +15,40 @@ const InventoryList = () => {
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        const items = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          uploadedAt: doc.data().uploadedAt?.toDate()
-        }));
-        setInventory(items);
+        // Group items by name, dosage, and form
+        const groupedItems = snapshot.docs.reduce((acc, doc) => {
+          const data = doc.data();
+          const key = `${data.name}-${data.dosage}-${data.form}`;
+          
+          if (!acc[key]) {
+            acc[key] = {
+              id: doc.id,
+              name: data.name,
+              dosage: data.dosage,
+              form: data.form,
+              manufacturer: data.manufacturer,
+              quantity: 0,
+              sources: [],
+              lastUpdated: data.uploadedAt?.toDate()
+            };
+          }
+          
+          acc[key].quantity += Number(data.quantity);
+          acc[key].sources.push({
+            file: data.originalFile,
+            date: data.uploadedAt?.toDate(),
+            quantity: data.quantity
+          });
+          
+          // Keep track of most recent update
+          if (data.uploadedAt?.toDate() > acc[key].lastUpdated) {
+            acc[key].lastUpdated = data.uploadedAt?.toDate();
+          }
+
+          return acc;
+        }, {});
+
+        setInventory(Object.values(groupedItems));
         setLoading(false);
       },
       (error) => {
@@ -51,7 +79,7 @@ const InventoryList = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-semibold mb-6">Inventory List</h2>
+      <h2 className="text-2xl font-semibold mb-6">Inventory List (aggregated)</h2>
       
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="min-w-full divide-y divide-gray-200">
@@ -60,21 +88,37 @@ const InventoryList = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dosage</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Form</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Quantity</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacturer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {inventory.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
+              <tr 
+                key={`${item.name}-${item.dosage}-${item.form}`} 
+                className="hover:bg-gray-50 group"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.dosage}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.form}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.quantity}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div className="group-hover:text-blue-600 cursor-pointer">
+                    {item.quantity}
+                    <div className="hidden group-hover:block absolute bg-white shadow-lg rounded-lg p-4 z-10 mt-2">
+                      <h4 className="font-semibold mb-2">Sources:</h4>
+                      {item.sources.map((source, idx) => (
+                        <div key={idx} className="text-xs mb-1">
+                          {source.quantity} units from {source.file} 
+                          ({source.date?.toLocaleDateString()})
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.manufacturer}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {item.uploadedAt?.toLocaleDateString()}
+                  {item.lastUpdated?.toLocaleDateString()}
                 </td>
               </tr>
             ))}
