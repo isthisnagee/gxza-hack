@@ -26,13 +26,9 @@ const FileUpload = () => {
       setUploading(true);
       setUploadError(null);
       
-      // Create a reference to the file in Firebase Storage
       const fileRef = ref(storage, `uploads/${file.name}`);
-      
-      // Create the upload task
       const uploadTask = uploadBytesResumable(fileRef, file);
 
-      // Set up progress monitoring
       uploadTask.on('state_changed', 
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -44,13 +40,11 @@ const FileUpload = () => {
           setUploading(false);
         },
         async () => {
-          // Upload completed successfully
           const downloadURL = await getDownloadURL(fileRef);
           console.log('File uploaded successfully:', downloadURL);
           setUploadSuccess(true);
           setFile(null);
           setUploading(false);
-          // Reset the file input
           e.target.reset();
         }
       );
@@ -63,64 +57,84 @@ const FileUpload = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto">
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Upload Inventory</h2>
+    <div className="w-full max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Upload Inventory</h2>
+        
         {uploadError && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-            {uploadError}
+          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100">
+            <p className="text-sm text-red-600">{uploadError}</p>
           </div>
         )}
+        
         {uploadSuccess && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
-            File uploaded successfully!
+          <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-100">
+            <p className="text-sm text-green-600">File uploaded successfully!</p>
           </div>
         )}
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
               Choose File
             </label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-md file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
-              disabled={uploading}
-            />
+            <div className="relative">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500 
+                  file:mr-4 file:py-2.5 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-600
+                  hover:file:bg-blue-100
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-colors duration-200"
+                disabled={uploading}
+              />
+            </div>
+            {file && (
+              <p className="text-sm text-gray-500 mt-2">
+                Selected: {file.name}
+              </p>
+            )}
           </div>
+
           {uploading && (
-            <div className="mb-4">
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="space-y-2">
+              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                 <div 
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                  className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-in-out"
                   style={{ width: `${uploadProgress}%` }}
-                ></div>
+                />
               </div>
-              <p className="text-sm text-gray-600 mt-1 text-center">
+              <p className="text-sm text-gray-600 text-center">
                 {Math.round(uploadProgress)}% uploaded
               </p>
             </div>
           )}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 flex items-center justify-center"
+            className="w-full flex items-center justify-center px-4 py-3 
+              border border-transparent text-sm font-medium rounded-lg
+              text-white bg-blue-600 hover:bg-blue-700 
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors duration-200"
             disabled={!file || uploading}
           >
             {uploading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Uploading...
               </>
             ) : (
-              'Upload'
+              'Upload File'
             )}
           </button>
         </form>
